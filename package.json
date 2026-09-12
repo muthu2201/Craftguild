@@ -1,0 +1,38 @@
+{
+  "name": "craftguild-payments",
+  "version": "1.0.0",
+  "private": true,
+  "description": "India-first creator publishing platform: payments, split settlement, double-entry ledger and statutory tax engine (ECO / GST / TCS / TDS 194-O).",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/http/server.js",
+    "start:worker": "node dist/jobs/worker.js",
+    "migrate": "node --import tsx src/adapters/postgres/migrate-cli.ts",
+    "dev": "node --import tsx --watch src/http/server.ts",
+    "sim": "node --import tsx tools/cashfree-sim/server.ts",
+    "test:unit": "node --import tsx --test test/unit/*.test.ts",
+    "test:integration": "node --import tsx --test test/integration/*.test.ts",
+    "test:e2e": "node --import tsx --test test/e2e/*.test.ts",
+    "stress": "node --import tsx test/stress/run.ts",
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/helmet": "^13.0.1",
+    "ioredis": "^5.4.2",
+    "pg": "^8.13.1",
+    "pino": "^9.6.0",
+    "undici": "^7.2.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
