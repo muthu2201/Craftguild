@@ -70,6 +70,13 @@ while something is keeping the service awake. Nothing is lost when it sleeps —
 work is claimed from Postgres on wake, and webhook deliveries queue in the
 `webhook_events` table — but a period closes late.
 
+## Why `NPM_CONFIG_INCLUDE=dev` is set
+
+Render sets `NODE_ENV=production` in the build environment, which makes `npm ci`
+omit devDependencies — including the TypeScript compiler the build needs.
+`NPM_CONFIG_INCLUDE=dev` restores them for the install step only; the runtime
+still runs with `NODE_ENV=production`. Removing it breaks the build.
+
 ## Environment variables that still need values
 
 Everything else is already set. These six cannot be set from here, because they

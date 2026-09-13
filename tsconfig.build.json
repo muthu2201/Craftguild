@@ -1,0 +1,9 @@
+{
+  // The production build compiles src/ only. tsconfig.json's wider `include`
+  // exists so `npm run typecheck` covers tests and tools too - but shipping
+  // them means the runtime image carries the payment-aggregator simulator and
+  // every test fixture, and the build then depends on test-only types. rootDir
+  // stays "." so output paths are unchanged: dist/src/http/server.js.
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"]
+}
