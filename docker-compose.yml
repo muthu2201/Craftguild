@@ -1,0 +1,73 @@
+# Local stack. Production runs the same image against managed Postgres and
+# Redis; only the connection strings change.
+name: craftguild
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: craftguild
+      POSTGRES_PASSWORD: craftguild
+      POSTGRES_DB: craftguild
+    ports: ['5432:5432']
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U craftguild -d craftguild']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes: ['redisdata:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ['node', 'dist/src/adapters/postgres/migrate-cli.js']
+    environment:
+      DATABASE_URL: postgres://craftguild:craftguild@postgres:5432/craftguild
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: .
+    ports: ['8080:8080']
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://craftguild:craftguild@postgres:5432/craftguild
+      REDIS_URL: redis://redis:6379
+      HOST: 0.0.0.0
+      PORT: '8080'
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ['node', 'dist/src/jobs/worker.js']
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://craftguild:craftguild@postgres:5432/craftguild
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Worker loops claim work with FOR UPDATE SKIP LOCKED and advisory locks,
+    # so replicas need no coordination service.
+    deploy:
+      replicas: 2
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
