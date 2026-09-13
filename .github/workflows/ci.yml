@@ -48,11 +48,32 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The test steps assert that tests actually RAN, not merely that the
+      # runner exited zero. `node --test` exits 0 when its glob matches no
+      # files, so a mistyped path or a moved directory would turn CI green
+      # while executing nothing at all. The floors sit well below the real
+      # counts so they catch that hole without needing an edit per new test.
       - name: Unit tests
-        run: npm run test:unit
+        run: |
+          set -o pipefail
+          npm run test:unit 2>&1 | tee /tmp/unit.log
+          ran=$(grep -oE '^# tests [0-9]+' /tmp/unit.log | tail -1 | grep -oE '[0-9]+')
+          if [ "${ran:-0}" -lt 40 ]; then
+            echo "::error::Expected at least 40 unit tests to run, but ${ran:-0} ran."
+            exit 1
+          fi
+          echo "$ran unit tests ran."
 
       - name: End-to-end tests
-        run: npm run test:e2e
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee /tmp/e2e.log
+          ran=$(grep -oE '^# tests [0-9]+' /tmp/e2e.log | tail -1 | grep -oE '[0-9]+')
+          if [ "${ran:-0}" -lt 30 ]; then
+            echo "::error::Expected at least 30 end-to-end tests to run, but ${ran:-0} ran."
+            exit 1
+          fi
+          echo "$ran end-to-end tests ran."
 
       # A short stress run on every change: the financial-integrity assertions
       # are the point, not the throughput numbers.
