@@ -6,3 +6,8 @@ dist/
 .pgdata/
 .runtime/
 coverage/
+
+# Next.js
+web/.next/
+web/node_modules/
+web/next-env.d.ts

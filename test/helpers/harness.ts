@@ -42,15 +42,15 @@ export interface Harness {
   close: () => Promise<void>;
 }
 
-let portCursor = 19_000;
-function nextPort(): number {
-  portCursor += 1 + Math.floor(Math.random() * 5);
-  return portCursor;
-}
-
 export async function startHarness(options: HarnessOptions = {}): Promise<Harness> {
   const schema = options.schema ?? `t_${randomUUID().replace(/-/g, '').slice(0, 16)}`;
-  const simPort = options.sim?.port ?? nextPort();
+
+  // Port 0 lets the OS assign a free port, and `sim.listen()` reports back the
+  // one it got. A counter shared inside the module cannot do this job: node's
+  // test runner gives each test FILE its own process, so every file would start
+  // the counter at the same value and race its siblings for the same ports.
+  // That raced about one run in five, which is what made this suite flaky.
+  const simPort = options.sim?.port ?? 0;
 
   const sim = new CashfreeSimulator({
     ...DEFAULT_SIM_CONFIG,

@@ -167,7 +167,7 @@ npm run start:worker          # background loops
 ### Tests
 
 ```bash
-npm run test:unit             # 40 tests: money, tax, ledger, split
+npm run test:unit             # 47 tests: money, tax, ledger, split, fee parity
 npm run test:e2e              # 34 tests: full lifecycle + settlement
 npm run stress                # end-to-end stress test under fault injection
 ```
@@ -187,6 +187,58 @@ is lost, duplicated or stranded.
 ```bash
 npm run stress -- --readers 400 --creators 50 --duration 60 --concurrency 64
 ```
+
+---
+
+## The public site
+
+`web/` is a Next.js app, statically prerendered, that states the platform's one
+distinguishing claim: the fee is 10% and every other rupee is accounted for by
+name. Its hero is a live calculator where a creator enters their own chapter
+price and watches the money land in four named destinations — themselves,
+CraftGuild, the payment network, and GST to the government.
+
+Those figures are not marketing approximations. `web/lib/fees.ts` carries the
+schedule, and `test/unit/fee-parity.test.ts` asserts it against
+`DEFAULT_FEE_SCHEDULE`, comparing both split implementations across 3,000
+amounts paise for paise. **A rate that drifts on the public site fails the build
+rather than reaching a creator.**
+
+```bash
+cd web && npm ci && npm run dev
+```
+
+### Deploying it
+
+The site deploys to Vercel from this repository. It lives in a subdirectory, so
+the project's **Root Directory must be set to `web`** — everything else is
+auto-detected.
+
+1. Vercel → Add New → Project → import this repository
+2. Set Root Directory to `web`
+3. Deploy
+
+After that, every push to `main` redeploys automatically. No environment
+variables are required: the page is fully static and reads no secrets.
+
+---
+
+## Deployed infrastructure
+
+| Piece | Where | Notes |
+|---|---|---|
+| Database | Supabase, `ap-south-1` (Mumbai) | Chosen for latency and data residency for Indian readers and creators |
+| Schema | 4 migrations applied | 25 tables, 6 views, append-only ledger triggers, RLS deny-all |
+| API + worker | Not yet hosted | See the note below |
+
+The Fastify API and the worker are long-running processes and still need a
+container host. The worker's every action is also exposed as an admin endpoint
+(`/v1/admin/settlements/close`, `/payouts/dispatch`, `/webhooks/process`,
+`/outbox/drain`), so a scheduler hitting those over HTTP can drive the whole
+background layer without a persistent worker process.
+
+Redis is still required for rate limiting, distributed locks and the
+idempotency cache; Supabase does not provide it.
 
 ---
 
