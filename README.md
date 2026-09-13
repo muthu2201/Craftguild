@@ -167,7 +167,7 @@ npm run start:worker          # background loops
 ### Tests
 
 ```bash
-npm run test:unit             # 40 tests: money, tax, ledger, split
+npm run test:unit             # 47 tests: money, tax, ledger, split, fee parity
 npm run test:e2e              # 34 tests: full lifecycle + settlement
 ```
 
