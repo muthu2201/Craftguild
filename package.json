@@ -10,8 +10,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/http/server.js",
-    "start:worker": "node dist/jobs/worker.js",
+    "start": "node dist/src/http/server.js",
+    "start:worker": "node dist/src/jobs/worker.js",
     "migrate": "node --import tsx src/adapters/postgres/migrate-cli.ts",
     "dev": "node --import tsx --watch src/http/server.ts",
     "sim": "node --import tsx tools/cashfree-sim/server.ts",

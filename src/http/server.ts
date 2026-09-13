@@ -1,6 +1,7 @@
 import { buildContainer } from '../container.js';
 import { buildApp } from './app.js';
 import { migrate } from '../adapters/postgres/migrator.js';
+import { startLoops } from '../jobs/worker.js';
 
 /** API process entry point. */
 async function main(): Promise<void> {
@@ -12,6 +13,13 @@ async function main(): Promise<void> {
   }
 
   const app = await buildApp(container);
+
+  // On a single-container deployment the background loops run here rather than
+  // in their own process. They claim work with SKIP LOCKED and advisory locks,
+  // so this is the same code doing the same thing from a different process —
+  // and shutdown has to stop them before the container's pools are released.
+  const stopLoops = config.env.RUN_WORKER_IN_PROCESS ? startLoops(container) : null;
+  if (stopLoops) logger.info('background loops running in the api process');
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
@@ -26,6 +34,7 @@ async function main(): Promise<void> {
     timer.unref();
     try {
       await app.close();
+      if (stopLoops) await stopLoops();
       await container.shutdown();
       clearTimeout(timer);
       process.exit(0);

@@ -84,6 +84,11 @@ const EnvSchema = z.object({
   // Workers
   WORKER_CONCURRENCY: int(4, 1),
   WORKER_POLL_INTERVAL_MS: int(250, 50),
+  // Run the background loops inside the API process instead of a separate
+  // worker. A single-container deployment is the cheapest way to host this and
+  // is safe because every loop already claims its work with SKIP LOCKED or an
+  // advisory lock; co-locating them changes who runs a loop, not how.
+  RUN_WORKER_IN_PROCESS: bool(false),
 
   TRUST_PROXY: bool(false),
 });
