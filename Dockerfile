@@ -7,10 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY migrations ./migrations
-RUN npx tsc -p tsconfig.json
+RUN npm run build
 
 # Reinstall without dev dependencies for the runtime image.
 RUN npm ci --omit=dev && npm cache clean --force

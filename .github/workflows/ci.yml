@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: craftguild_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/craftguild_test
+      TEST_REDIS_URL: redis://127.0.0.1:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # The test steps assert that tests actually RAN, not merely that the
+      # runner exited zero. `node --test` exits 0 when its glob matches no
+      # files, so a mistyped path or a moved directory would turn CI green
+      # while executing nothing at all. The floors sit well below the real
+      # counts so they catch that hole without needing an edit per new test.
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          npm run test:unit 2>&1 | tee /tmp/unit.log
+          ran=$(grep -oE '^# tests [0-9]+' /tmp/unit.log | tail -1 | grep -oE '[0-9]+')
+          if [ "${ran:-0}" -lt 40 ]; then
+            echo "::error::Expected at least 40 unit tests to run, but ${ran:-0} ran."
+            exit 1
+          fi
+          echo "$ran unit tests ran."
+
+      - name: End-to-end tests
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee /tmp/e2e.log
+          ran=$(grep -oE '^# tests [0-9]+' /tmp/e2e.log | tail -1 | grep -oE '[0-9]+')
+          if [ "${ran:-0}" -lt 30 ]; then
+            echo "::error::Expected at least 30 end-to-end tests to run, but ${ran:-0} ran."
+            exit 1
+          fi
+          echo "$ran end-to-end tests ran."
+
+      # A short stress run on every change: the financial-integrity assertions
+      # are the point, not the throughput numbers.
+      - name: Stress test (integrity under fault injection)
+        run: npm run stress -- --readers 60 --creators 10 --duration 15 --concurrency 16

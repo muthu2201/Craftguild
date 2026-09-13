@@ -8,16 +8,17 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/http/server.js",
-    "start:worker": "node dist/jobs/worker.js",
+    "start": "node dist/src/http/server.js",
+    "start:worker": "node dist/src/jobs/worker.js",
     "migrate": "node --import tsx src/adapters/postgres/migrate-cli.ts",
     "dev": "node --import tsx --watch src/http/server.ts",
     "sim": "node --import tsx tools/cashfree-sim/server.ts",
     "test:unit": "node --import tsx --test test/unit/*.test.ts",
     "test:integration": "node --import tsx --test test/integration/*.test.ts",
     "test:e2e": "node --import tsx --test test/e2e/*.test.ts",
+    "stress": "node --import tsx test/stress/run.ts",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e"
   },
   "dependencies": {

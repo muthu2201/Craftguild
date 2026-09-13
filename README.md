@@ -169,6 +169,7 @@ npm run start:worker          # background loops
 ```bash
 npm run test:unit             # 47 tests: money, tax, ledger, split, fee parity
 npm run test:e2e              # 34 tests: full lifecycle + settlement
+npm run stress                # end-to-end stress test under fault injection
 ```
 
 The end-to-end suite boots the **real** application — real Fastify server, real
@@ -178,6 +179,14 @@ same paths, auth headers, decimal-rupee wire format and base64-HMAC webhook
 signing. Nothing inside `src/` is substituted or stubbed. Set
 `CASHFREE_BASE_URL` to a real Cashfree environment and the same adapter talks to
 Cashfree.
+
+The stress test injects what a real aggregator does — transient 503s, duplicated
+webhook deliveries, bounced bank transfers, latency — and asserts that no paisa
+is lost, duplicated or stranded.
+
+```bash
+npm run stress -- --readers 400 --creators 50 --duration 60 --concurrency 64
+```
 
 ---
 
